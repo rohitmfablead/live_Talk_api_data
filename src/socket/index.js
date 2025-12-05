@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import Message from "../models/Message.js";
+import Group from "../models/Group.js";
 
 // Define multiple call duration options (in milliseconds)
 const CALL_DURATIONS = {
@@ -16,6 +17,7 @@ const onlineUsers = new Map();   // userId -> socketId
 const socketToUser = new Map();  // socketId -> userId
 const activeCalls = new Map();   // callId -> { ... }
 const callTimeouts = new Map();  // callId -> timeoutId
+const typingUsers = new Map();   // conversationId -> { userId, timestamp }
 
 const initSocket = (io) => {
   // auth middleware
@@ -83,6 +85,69 @@ const initSocket = (io) => {
       activeCalls.delete(callId);
       console.log(`Call ${callId} ended due to timeout`);
     };
+
+    // Handle typing indicators
+    socket.on("typing:start", (data) => {
+      const { receiverId, groupId } = data;
+      
+      if (groupId) {
+        // For group messages, notify all group members except sender
+        Group.findById(groupId).then(group => {
+          if (group) {
+            group.memberIds.forEach(memberId => {
+              const memberSocketId = onlineUsers.get(memberId.toString());
+              if (memberSocketId && memberId.toString() !== userId) {
+                io.to(memberSocketId).emit("typing:start", {
+                  userId: userId,
+                  groupId: groupId,
+                });
+              }
+            });
+          }
+        }).catch(err => {
+          console.error("Error fetching group for typing indicator:", err);
+        });
+      } else if (receiverId) {
+        // For private messages
+        const receiverSocketId = onlineUsers.get(receiverId);
+        if (receiverSocketId) {
+          io.to(receiverSocketId).emit("typing:start", {
+            userId: userId,
+          });
+        }
+      }
+    });
+
+    socket.on("typing:stop", (data) => {
+      const { receiverId, groupId } = data;
+      
+      if (groupId) {
+        // For group messages, notify all group members except sender
+        Group.findById(groupId).then(group => {
+          if (group) {
+            group.memberIds.forEach(memberId => {
+              const memberSocketId = onlineUsers.get(memberId.toString());
+              if (memberSocketId && memberId.toString() !== userId) {
+                io.to(memberSocketId).emit("typing:stop", {
+                  userId: userId,
+                  groupId: groupId,
+                });
+              }
+            });
+          }
+        }).catch(err => {
+          console.error("Error fetching group for typing indicator:", err);
+        });
+      } else if (receiverId) {
+        // For private messages
+        const receiverSocketId = onlineUsers.get(receiverId);
+        if (receiverSocketId) {
+          io.to(receiverSocketId).emit("typing:stop", {
+            userId: userId,
+          });
+        }
+      }
+    });
 
     // call:initiate
     socket.on("call:initiate", async (payload) => {
@@ -220,45 +285,101 @@ const initSocket = (io) => {
     // Chat message handling
     socket.on("message:send", async (payload) => {
       try {
-        const { receiverId, content, type = "text" } = payload;
+        const { receiverId, groupId, content, type = "text" } = payload;
         const senderId = userId;
 
-        if (!receiverId || !content) {
-          socket.emit("message:error", { message: "Receiver and content are required" });
+        // Validate that either receiverId or groupId is provided, but not both
+        if ((!receiverId && !groupId) || (receiverId && groupId)) {
+          socket.emit("message:error", { message: "Either receiverId or groupId must be provided, but not both" });
           return;
         }
 
-        // Check if receiver exists and is online
-        const receiverSocketId = onlineUsers.get(receiverId);
-
-        // Save message to database
-        const message = await Message.create({
+        let messageData = {
           senderId,
-          receiverId,
           content,
           type,
-        });
+        };
 
-        // Populate sender info
-        await message.populate("senderId", "name avatarUrl");
-
-        // Send message to receiver if online
-        if (receiverSocketId) {
-          io.to(receiverSocketId).emit("message:receive", {
+        if (receiverId) {
+          // Private message
+          const receiverSocketId = onlineUsers.get(receiverId);
+          
+          // Check if receiver exists
+          const receiver = await User.findById(receiverId);
+          if (!receiver) {
+            socket.emit("message:error", { message: "Receiver not found" });
+            return;
+          }
+          
+          messageData.receiverId = receiverId;
+          
+          // Save message to database
+          const message = await Message.create(messageData);
+          
+          // Populate sender info
+          await message.populate("senderId", "name avatarUrl");
+          
+          // Send message to receiver if online
+          if (receiverSocketId) {
+            io.to(receiverSocketId).emit("message:receive", {
+              message: {
+                ...message.toObject(),
+                sender: message.senderId
+              }
+            });
+          }
+          
+          // Send confirmation to sender
+          socket.emit("message:sent", {
             message: {
               ...message.toObject(),
               sender: message.senderId
             }
           });
-        }
-
-        // Send confirmation to sender
-        socket.emit("message:sent", {
-          message: {
-            ...message.toObject(),
-            sender: message.senderId
+        } else if (groupId) {
+          // Group message
+          const group = await Group.findOne({
+            _id: groupId,
+            memberIds: senderId,
+          });
+          
+          if (!group) {
+            socket.emit("message:error", { message: "Group not found or access denied" });
+            return;
           }
-        });
+          
+          messageData.groupId = groupId;
+          
+          // Save message to database
+          const message = await Message.create(messageData);
+          
+          // Populate sender info
+          await message.populate("senderId", "name avatarUrl");
+          await message.populate("groupId", "name");
+          
+          // Send message to all online group members except sender
+          group.memberIds.forEach(memberId => {
+            const memberSocketId = onlineUsers.get(memberId.toString());
+            if (memberSocketId && memberId.toString() !== userId) {
+              io.to(memberSocketId).emit("message:receive", {
+                message: {
+                  ...message.toObject(),
+                  sender: message.senderId,
+                  group: message.groupId
+                }
+              });
+            }
+          });
+          
+          // Send confirmation to sender
+          socket.emit("message:sent", {
+            message: {
+              ...message.toObject(),
+              sender: message.senderId,
+              group: message.groupId
+            }
+          });
+        }
       } catch (err) {
         console.error("Send message error:", err);
         socket.emit("message:error", { message: "Failed to send message" });

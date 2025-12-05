@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "live-talk-backend-api",
 		"name": "LiveTalk Backend API",
-		"description": "API collection for LiveTalk - A real-time voice/video calling and messaging application\\n\\nFeatures:\\n- User authentication (register/login)\\n- Contact management\\n- Call logging\\n- Real-time chat messaging\\n- Real-time WebRTC signaling\\n- Automatic call timeout (15, 30, or 45 minutes)",
+		"description": "API collection for LiveTalk - A real-time voice/video calling and messaging application\\n\\nFeatures:\\n- User authentication (register/login)\\n- Contact management\\n- Call logging\\n- Real-time chat messaging\\n- Real-time WebRTC signaling\\n- Automatic call timeout (15, 30, or 45 minutes)\\n- Message editing and deletion\\n- Group chat functionality\\n- User status updates\\n- User profile management",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -149,6 +149,76 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Update User Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"John Smith\",\n  \"avatarUrl\": \"https://example.com/new-avatar.jpg\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/profile",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"profile"
+							]
+						},
+						"description": "Update user profile information (name and avatar)"
+					},
+					"response": []
+				},
+				{
+					"name": "Update User Status",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"busy\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/status",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"status"
+							]
+						},
+						"description": "Update user status (online, offline, busy)"
+					},
+					"response": []
 				}
 			]
 		},
@@ -261,6 +331,67 @@
 					"response": []
 				},
 				{
+					"name": "Edit Message",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"content\": \"Updated message content\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/messages/{{messageId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"messages",
+								"{{messageId}}"
+							]
+						},
+						"description": "Edit a previously sent message"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Message",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/messages/{{messageId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"messages",
+								"{{messageId}}"
+							]
+						},
+						"description": "Delete a previously sent message (soft delete)"
+					},
+					"response": []
+				},
+				{
 					"name": "Get Conversation",
 					"request": {
 						"method": "GET",
@@ -311,6 +442,59 @@
 					"response": []
 				},
 				{
+					"name": "Get Recent Groups",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/messages/groups",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"messages",
+								"groups"
+							]
+						},
+						"description": "Get recent groups with last message"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Group Messages",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/messages/group/{{groupId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"messages",
+								"group",
+								"{{groupId}}"
+							]
+						},
+						"description": "Get messages for a specific group"
+					},
+					"response": []
+				},
+				{
 					"name": "Get Unread Messages Count",
 					"request": {
 						"method": "GET",
@@ -332,6 +516,195 @@
 								"unread"
 							]
 						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Groups",
+			"item": [
+				{
+					"name": "Create Group",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Team Alpha\",\n  \"description\": \"Official team alpha group\",\n  \"memberIds\": [\"{{userId1}}\", \"{{userId2}}\"]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/groups",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"groups"
+							]
+						},
+						"description": "Create a new group chat"
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Groups",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/groups",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"groups"
+							]
+						},
+						"description": "Get all groups for the current user"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Group Details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/groups/{{groupId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"groups",
+								"{{groupId}}"
+							]
+						},
+						"description": "Get details of a specific group"
+					},
+					"response": []
+				},
+				{
+					"name": "Add Group Members",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"memberIds\": [\"{{userId3}}\", \"{{userId4}}\"]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/groups/{{groupId}}/members",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"groups",
+								"{{groupId}}",
+								"members"
+							]
+						},
+						"description": "Add members to a group (admin only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Remove Group Members",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"memberIds\": [\"{{userId3}}\", \"{{userId4}}\"]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/groups/{{groupId}}/members",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"groups",
+								"{{groupId}}",
+								"members"
+							]
+						},
+						"description": "Remove members from a group (admin only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Leave Group",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/groups/{{groupId}}/leave",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"groups",
+								"{{groupId}}",
+								"leave"
+							]
+						},
+						"description": "Leave a group"
 					},
 					"response": []
 				}
@@ -395,6 +768,62 @@
 						"description": "Send a real-time message"
 					},
 					"response": []
+				},
+				{
+					"name": "Start Typing",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"receiverId\": \"USER_ID_HERE\"\n  // OR\n  // \"groupId\": \"GROUP_ID_HERE\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "ws://{{baseUrl}}/socket.io/",
+							"host": [
+								"ws://{{baseUrl}}"
+							],
+							"path": [
+								"socket.io",
+								""
+							]
+						},
+						"description": "Send typing indicator event"
+					},
+					"response": []
+				},
+				{
+					"name": "Stop Typing",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"receiverId\": \"USER_ID_HERE\"\n  // OR\n  // \"groupId\": \"GROUP_ID_HERE\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "ws://{{baseUrl}}/socket.io/",
+							"host": [
+								"ws://{{baseUrl}}"
+							],
+							"path": [
+								"socket.io",
+								""
+							]
+						},
+						"description": "Send stop typing indicator event"
+					},
+					"response": []
 				}
 			],
 			"description": "WebSocket events for real-time communication"
@@ -431,6 +860,30 @@
 		},
 		{
 			"key": "userId",
+			"value": ""
+		},
+		{
+			"key": "userId1",
+			"value": ""
+		},
+		{
+			"key": "userId2",
+			"value": ""
+		},
+		{
+			"key": "userId3",
+			"value": ""
+		},
+		{
+			"key": "userId4",
+			"value": ""
+		},
+		{
+			"key": "messageId",
+			"value": ""
+		},
+		{
+			"key": "groupId",
 			"value": ""
 		},
 		{

@@ -9,6 +9,7 @@ import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import callRoutes from "./routes/callRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
+import groupRoutes from "./routes/groupRoutes.js";
 import initSocket from "./socket/index.js";
 
 dotenv.config();
@@ -33,6 +34,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/calls", callRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/groups", groupRoutes);
 
 app.get("/", (req, res) => {
   res.send("LiveTalk backend running (ESM)");
