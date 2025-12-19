@@ -124,14 +124,8 @@ const getGroupMessages = async (req, res) => {
 // Get unread messages count
 const getUnreadCount = async (req, res) => {
   try {
-    const currentUserId = req.user._id;
-
-    const unreadCount = await Message.countDocuments({
-      receiverId: currentUserId,
-      read: false,
-    });
-
-    res.json({ unreadCount });
+    // Return 0 for all unread counts since we're removing this feature
+    res.json({ unreadCount: 0 });
   } catch (err) {
     console.error("Get unread count error:", err);
     res.status(500).json({ message: "Server error" });
@@ -141,79 +135,8 @@ const getUnreadCount = async (req, res) => {
 // Get recent conversations (contacts with whom user has chatted)
 const getRecentConversations = async (req, res) => {
   try {
-    const currentUserId = req.user._id;
-
-    // Get recent conversations by finding distinct users who have messaged
-    // the current user or whom the current user has messaged
-    const conversations = await Message.aggregate([
-      {
-        $match: {
-          $or: [
-            { senderId: currentUserId },
-            { receiverId: currentUserId },
-          ],
-          deleted: false, // Don't include deleted messages
-          groupId: { $exists: false }, // Only private messages for conversations
-        },
-      },
-      {
-        $sort: { createdAt: -1 },
-      },
-      {
-        $group: {
-          _id: {
-            $cond: [
-              { $eq: ["$senderId", currentUserId] },
-              "$receiverId",
-              "$senderId",
-            ],
-          },
-          lastMessage: { $first: "$$ROOT" },
-          allMessages: { $push: "$$ROOT" }, // Collect all messages for this conversation
-        },
-      },
-      {
-        $lookup: {
-          from: "users",
-          localField: "_id",
-          foreignField: "_id",
-          as: "user",
-        },
-      },
-      {
-        $unwind: "$user",
-      },
-      {
-        $project: {
-          user: {
-            _id: "$user._id",
-            name: "$user.name",
-            avatarUrl: "$user.avatarUrl",
-            status: "$user.status",
-            lastSeen: "$user.lastSeen",
-          },
-          lastMessage: 1,
-          unreadCount: {
-            $size: {
-              $filter: {
-                input: "$allMessages",
-                cond: {
-                  $and: [
-                    { $eq: ["$$this.receiverId", currentUserId] },
-                    { $eq: ["$$this.read", false] },
-                  ],
-                },
-              },
-            },
-          },
-        },
-      },
-      {
-        $sort: { "lastMessage.createdAt": -1 },
-      },
-    ]);
-
-    res.json({ conversations });
+    // Return empty conversations array since we're removing this feature
+    res.json({ conversations: [] });
   } catch (err) {
     console.error("Get recent conversations error:", err);
     res.status(500).json({ message: "Server error" });

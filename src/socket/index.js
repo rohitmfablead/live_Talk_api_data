@@ -56,9 +56,8 @@ const initSocket = (io) => {
       lastSeen: new Date(),
     });
 
-    socket.broadcast.emit("user:status", {
+    socket.broadcast.emit("user:online", {
       userId,
-      status: "online",
     });
 
     // Helper function to end a call automatically
@@ -321,7 +320,7 @@ const initSocket = (io) => {
           
           // Send message to receiver if online
           if (receiverSocketId) {
-            io.to(receiverSocketId).emit("message:receive", {
+            io.to(receiverSocketId).emit("message:new", {
               message: {
                 ...message.toObject(),
                 sender: message.senderId
@@ -361,7 +360,7 @@ const initSocket = (io) => {
           group.memberIds.forEach(memberId => {
             const memberSocketId = onlineUsers.get(memberId.toString());
             if (memberSocketId && memberId.toString() !== userId) {
-              io.to(memberSocketId).emit("message:receive", {
+              io.to(memberSocketId).emit("message:new", {
                 message: {
                   ...message.toObject(),
                   sender: message.senderId,
@@ -470,9 +469,8 @@ const initSocket = (io) => {
           lastSeen: new Date(),
         });
 
-        socket.broadcast.emit("user:status", {
+        socket.broadcast.emit("user:offline", {
           userId,
-          status: "offline",
         });
       }
 
